@@ -3,7 +3,7 @@ import { useSimStore } from '../store/useSimStore';
 import { ObstacleType } from '../utils/constants';
 import { cn } from '../lib/utils';
 
-export default function ControlPanel({ webgpuOk }: { webgpuOk: boolean }) {
+export default function ControlPanel() {
   const {
     isEmitting, toggleEmitting,
     viscosity, setViscosity,
@@ -11,7 +11,11 @@ export default function ControlPanel({ webgpuOk }: { webgpuOk: boolean }) {
     obstacleType, setObstacleType,
     obstacleRotationSpeed, setObstacleRotationSpeed,
     flowSpeed, setFlowSpeed,
+    backendMode,
   } = useSimStore();
+  const webgpuOk = backendMode === 'webgpu';
+  const webgl2Ok = backendMode === 'webgl2';
+  const anyOk = webgpuOk || webgl2Ok;
 
   const obstacles: { type: ObstacleType; label: string; icon: React.ReactNode }[] = [
     { type: 'sphere', label: '球体', icon: <CircleDot size={14} /> },
@@ -47,13 +51,19 @@ export default function ControlPanel({ webgpuOk }: { webgpuOk: boolean }) {
               className="text-[15px] font-semibold tracking-wide text-white"
               style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}
             >
-              WebGPU Fluid
+              Fluid Sim
             </div>
             <div
               className="text-[10px] uppercase tracking-widest"
-              style={{ color: webgpuOk ? 'rgba(0,229,255,0.8)' : 'rgba(255,100,120,0.8)' }}
+              style={{
+                color: webgpuOk
+                  ? 'rgba(0,229,255,0.85)'
+                  : webgl2Ok
+                  ? 'rgba(255,180,84,0.85)'
+                  : 'rgba(255,100,120,0.8)',
+              }}
             >
-              {webgpuOk ? '● GPU 计算已就绪' : '✕ WebGPU 不可用'}
+              {webgpuOk ? '● WebGPU Compute' : webgl2Ok ? '● WebGL2 GPGPU' : backendMode === null ? '⟳ 初始化…' : '✕ GPU 不可用'}
             </div>
           </div>
         </div>
@@ -61,13 +71,13 @@ export default function ControlPanel({ webgpuOk }: { webgpuOk: boolean }) {
         <div className="p-5 space-y-5">
           <button
             onClick={toggleEmitting}
-            disabled={!webgpuOk}
+            disabled={!anyOk}
             className={cn(
               'w-full py-4 rounded-xl font-semibold text-[14px] tracking-wider transition-all duration-300 relative overflow-hidden group',
               isEmitting
                 ? 'text-white'
                 : 'text-white',
-              !webgpuOk && 'opacity-40 cursor-not-allowed'
+              !anyOk && 'opacity-40 cursor-not-allowed'
             )}
             style={{
               background: isEmitting

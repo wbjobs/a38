@@ -83,7 +83,7 @@ fn sampleSDF(p: vec3<f32>) -> f32 {
 }
 
 fn sampleSDFGrad(p: vec3<f32>) -> vec3<f32> {
-  let h = 0.02;
+  let h = 0.015;
   return normalize(vec3<f32>(
     sampleSDF(p + vec3<f32>(h, 0.0, 0.0)) - sampleSDF(p - vec3<f32>(h, 0.0, 0.0)),
     sampleSDF(p + vec3<f32>(0.0, h, 0.0)) - sampleSDF(p - vec3<f32>(0.0, h, 0.0)),
@@ -96,33 +96,26 @@ fn emitParticle(id: u32, seedOffset: f32) -> vec4<f32> {
   let rnd2 = hash31(f32(id) * 7.77 + u.time * 3.1 + seedOffset * 2.0);
   let face = u32(floor(rnd.x * 5.99));
   var pos: vec3<f32>;
-  var vel: vec3<f32>;
   let inspeed = 0.4 + rnd2.y * 0.3;
 
   switch (face) {
     case 0u: {
       pos = vec3<f32>(-0.95, rnd.y * 1.8 - 0.9, rnd.z * 1.8 - 0.9);
-      vel = vec3<f32>(inspeed, (rnd2.x - 0.5) * 0.2, (rnd2.z - 0.5) * 0.2);
     }
     case 1u: {
       pos = vec3<f32>(0.95, rnd.y * 1.8 - 0.9, rnd.z * 1.8 - 0.9);
-      vel = vec3<f32>(-inspeed, (rnd2.x - 0.5) * 0.2, (rnd2.z - 0.5) * 0.2);
     }
     case 2u: {
       pos = vec3<f32>(rnd.x * 1.8 - 0.9, -0.95, rnd.z * 1.8 - 0.9);
-      vel = vec3<f32>((rnd2.x - 0.5) * 0.2, inspeed, (rnd2.z - 0.5) * 0.2);
     }
     case 3u: {
       pos = vec3<f32>(rnd.x * 1.8 - 0.9, 0.95, rnd.z * 1.8 - 0.9);
-      vel = vec3<f32>((rnd2.x - 0.5) * 0.2, -inspeed, (rnd2.z - 0.5) * 0.2);
     }
     case 4u: {
       pos = vec3<f32>(rnd.x * 1.8 - 0.9, rnd.y * 1.8 - 0.9, -0.95);
-      vel = vec3<f32>((rnd2.x - 0.5) * 0.2, (rnd2.y - 0.5) * 0.2, inspeed);
     }
     default: {
       pos = vec3<f32>(rnd.x * 1.8 - 0.9, rnd.y * 1.8 - 0.9, 0.95);
-      vel = vec3<f32>((rnd2.x - 0.5) * 0.2, (rnd2.y - 0.5) * 0.2, -inspeed);
     }
   }
   return vec4<f32>(pos, 1.0);
@@ -154,26 +147,44 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     return;
   }
 
+  let sdf = sampleSDF(pos.xyz);
+
+  if (sdf < -0.02) {
+    pos.w = 0.0;
+    posBuf[id] = pos;
+    velBuf[id] = vel;
+    return;
+  }
+
   let p = pos.xyz;
   let fVel = sampleVel(p);
 
   vel.xyz = vel.xyz + fVel * u.deltaTime * 4.0;
   vel.xyz = vel.xyz * 0.96;
 
-  let sdf = sampleSDF(p);
-  if (sdf < 0.02) {
+  if (sdf < 0.04) {
     let grad = sampleSDFGrad(p);
-    let pushOut = max(0.02 - sdf, 0.0) * 2.2;
-    pos.xyz = pos.xyz + grad * pushOut;
+    let pushDist = max(0.04 - sdf, 0.0);
+    let pushStrength = select(6.0, 3.0, sdf > 0.0);
+    pos.xyz = pos.xyz + grad * pushDist * pushStrength;
     let vDotN = dot(vel.xyz, grad);
     if (vDotN < 0.0) {
-      vel.xyz = vel.xyz - grad * vDotN * 1.2;
+      vel.xyz = vel.xyz - grad * vDotN * 2.0;
     }
-    vel.xyz = vel.xyz - grad * max(0.0, -sdf * 8.0);
+    vel.xyz = vel.xyz - grad * max(0.0, -sdf) * 12.0;
+    vel.xyz = vel.xyz * 0.55;
   }
 
   pos.xyz = pos.xyz + vel.xyz * u.deltaTime;
   pos.w = pos.w + u.deltaTime;
+
+  let sdfAfter = sampleSDF(pos.xyz);
+  if (sdfAfter < -0.01) {
+    pos.w = 0.0;
+    posBuf[id] = pos;
+    velBuf[id] = vel;
+    return;
+  }
 
   let boundary = 0.98;
   if (pos.w > 5.5 ||

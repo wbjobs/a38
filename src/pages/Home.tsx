@@ -6,10 +6,8 @@ import { AlertTriangle, RotateCcw } from 'lucide-react';
 
 export default function Home() {
   const [ready, setReady] = useState<boolean | null>(null);
-  const [webgpuOk, setWebgpuOk] = useState(true);
   const handleReady = useCallback((ok: boolean) => {
-    setReady(true);
-    setWebgpuOk(ok);
+    setReady(ok);
   }, []);
 
   return (
@@ -38,10 +36,10 @@ export default function Home() {
       </div>
 
       <FluidScene onReady={handleReady} />
-      <HUD webgpuOk={webgpuOk} />
-      <ControlPanel webgpuOk={webgpuOk} />
+      <HUD />
+      <ControlPanel />
 
-      {!webgpuOk && ready !== null && (
+      {ready === false && (
         <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
           <div
             className="max-w-md w-full rounded-2xl border p-7 text-center"
@@ -57,10 +55,10 @@ export default function Home() {
               <AlertTriangle size={28} className="text-rose-300" />
             </div>
             <h2 className="text-[20px] font-semibold text-white mb-3 tracking-wide">
-              浏览器不支持 WebGPU
+              浏览器不支持 GPU 计算
             </h2>
             <p className="text-[13px] text-white/60 leading-relaxed mb-6">
-              此演示需要支持 WebGPU 的现代浏览器以在 GPU 上运行 LBM 流体求解器。请使用最新版 Chrome / Edge / Arc 浏览器打开本页面。
+              此演示需要支持 WebGPU（优先）或 WebGL2 的现代浏览器。WebGPU 模式性能最佳，WebGL2 模式会自动降级使用。请使用最新版 Chrome / Edge / Safari 17+ 打开本页面。
             </p>
             <button
               onClick={() => location.reload()}

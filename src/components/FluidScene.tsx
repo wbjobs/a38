@@ -20,6 +20,7 @@ export default function FluidScene({ onReady }: Props) {
   });
   const setFps = useSimStore((s) => s.setFps);
   const setActiveParticles = useSimStore((s) => s.setActiveParticles);
+  const setBackendMode = useSimStore((s) => s.setBackendMode);
   const storeState = useSimStore.getState();
   paramsRef.current.isEmitting = storeState.isEmitting;
   paramsRef.current.viscosity = storeState.viscosity;
@@ -46,6 +47,7 @@ export default function FluidScene({ onReady }: Props) {
     const init = async () => {
       const simOk = await fluidSim.init();
       if (disposed || !containerRef.current) return;
+      if (simOk) setBackendMode(fluidSim.mode);
       onReady(simOk);
 
       const scene = new THREE.Scene();
@@ -284,7 +286,7 @@ export default function FluidScene({ onReady }: Props) {
         if (paramsRef.current.obstacleType !== lastObstacleType) {
           updateObstacle(paramsRef.current.obstacleType);
           lastObstacleType = paramsRef.current.obstacleType;
-          fluidSim.regenerateSDF(paramsRef.current.obstacleType, fluidSim.rotationAngle);
+          fluidSim.regenerateSDF(paramsRef.current.obstacleType, obstacleMesh.rotation.y);
         }
 
         const yaw = paramsRef.current.obstacleRotationSpeed * Math.PI / 180;
@@ -383,7 +385,7 @@ export default function FluidScene({ onReady }: Props) {
     return () => {
       disposed = true;
     };
-  }, [onReady, setFps, setActiveParticles]);
+  }, [onReady, setFps, setActiveParticles, setBackendMode]);
 
   return (
     <div

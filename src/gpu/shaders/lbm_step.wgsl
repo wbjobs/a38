@@ -74,17 +74,23 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 
   let pos = vec3<i32>(gid);
   let sdf = textureLoad(sdfTex, gid, 0).r;
+  let isInside = sdf < -0.005;
+  let isBoundary = sdf >= -0.005 && sdf < 0.03;
 
   var f: array<f32, 7>;
-  for (var i: u32 = 0u; i < 7u; i = i + 1u) {
-    let srcPos = pos - EI[i];
-    let srcSdf = textureLoad(sdfTex, vec3<u32>(wrap(srcPos, u.gridSize)), 0).r;
-    if (srcSdf < 0.0 && sdf >= 0.0) {
-      f[i] = sampleF(pos, OPP[i]);
-    } else if (sdf < 0.0) {
-      f[i] = sampleF(pos, OPP[i]);
-    } else {
-      f[i] = sampleF(srcPos, i);
+  if (isInside) {
+    for (var i: u32 = 0u; i < 7u; i = i + 1u) {
+      f[i] = WI[i] * 0.8;
+    }
+  } else {
+    for (var i: u32 = 0u; i < 7u; i = i + 1u) {
+      let srcPos = pos - EI[i];
+      let srcSdf = textureLoad(sdfTex, vec3<u32>(wrap(srcPos, u.gridSize)), 0).r;
+      if (srcSdf < -0.005) {
+        f[i] = sampleF(pos, OPP[i]);
+      } else {
+        f[i] = sampleF(srcPos, i);
+      }
     }
   }
 
@@ -97,15 +103,12 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   rho = max(rho, 0.01);
   var v = mom / rho;
 
-  let edgeDist = min(
-    min(f32(pos.x), f32(u.gridSize.x - 1u - pos.x)),
-    min(
-      min(f32(pos.y), f32(u.gridSize.y - 1u - pos.y)),
-      min(f32(pos.z), f32(u.gridSize.z - 1u - pos.z))
-    )
-  );
+  if (isInside) {
+    v = vec3<f32>(0.0);
+    rho = 0.8;
+  }
 
-  if (u.isEmitting == 1u) {
+  if (!isInside && u.isEmitting == 1u) {
     let t = u.time * 0.8;
     let swirl = vec3<f32>(
       sin(t + f32(pos.y) * 0.2),
@@ -116,7 +119,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     v = v + (inflow + swirl) * 0.12;
   }
 
-  if (sdf < 0.015 && sdf >= 0.0) {
+  if (isBoundary) {
     let h = 0.01;
     let n = vec3<f32>(
       textureLoad(sdfTex, vec3<u32>(wrap(pos + vec3<i32>(1,0,0), u.gridSize)), 0).r - textureLoad(sdfTex, vec3<u32>(wrap(pos - vec3<i32>(1,0,0), u.gridSize)), 0).r,
@@ -124,14 +127,16 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
       textureLoad(sdfTex, vec3<u32>(wrap(pos + vec3<i32>(0,0,1), u.gridSize)), 0).r - textureLoad(sdfTex, vec3<u32>(wrap(pos - vec3<i32>(0,0,1), u.gridSize)), 0).r
     ) / (2.0 * h + 1e-5);
     let nn = normalize(n + vec3<f32>(1e-5));
-    v = v - dot(v, nn) * nn * 1.3;
+    let vn = dot(v, nn);
+    v = v - nn * vn * 1.8;
+    v = v * 0.3;
   }
 
   let vmag = length(v);
   if (vmag > 0.4) { v = v * (0.4 / vmag); }
 
   let nu = max(u.viscosity, 0.0001);
-  let tau = 3.0 * nu * 6.0 + 0.55;
+  let tau = 3.0 * nu * 6.0 + 0.6;
   let invTau = 1.0 / tau;
 
   var fout: array<f32, 7>;
@@ -140,9 +145,13 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     fout[i] = f[i] - (f[i] - feq) * invTau;
   }
 
-  if (sdf < 0.0) {
+  if (isInside) {
     for (var i: u32 = 0u; i < 7u; i = i + 1u) {
-      fout[i] = f[OPP[i]];
+      fout[i] = WI[i] * 0.8;
+    }
+  } else if (isBoundary) {
+    for (var i: u32 = 0u; i < 7u; i = i + 1u) {
+      fout[i] = f[OPP[i]] * 0.85 + WI[i] * 0.8 * 0.15;
     }
   }
 

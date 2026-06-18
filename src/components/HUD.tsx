@@ -1,10 +1,14 @@
 import { useSimStore } from '../store/useSimStore';
 import { Cpu, Droplet, Layers, Timer } from 'lucide-react';
+import type { BackendMode } from '../gpu/FluidSimulator';
 
-export default function HUD({ webgpuOk }: { webgpuOk: boolean }) {
+export default function HUD() {
   const fps = useSimStore((s) => s.fps);
   const activeParticles = useSimStore((s) => s.activeParticles);
   const obstacleType = useSimStore((s) => s.obstacleType);
+  const backendMode = useSimStore((s) => s.backendMode);
+  const webgpuOk = backendMode === 'webgpu';
+  const modeLabel: BackendMode | null = backendMode;
 
   const items = [
     {
@@ -27,10 +31,10 @@ export default function HUD({ webgpuOk }: { webgpuOk: boolean }) {
     },
     {
       icon: <Cpu size={13} />,
-      label: webgpuOk ? 'GPU' : '模式',
-      value: webgpuOk
+      label: modeLabel === 'webgpu' ? 'WebGPU' : modeLabel === 'webgl2' ? 'WebGL2' : '模式',
+      value: modeLabel
         ? obstacleType === 'sphere' ? '球绕流' : obstacleType === 'torus' ? '环绕流' : '环结绕流'
-        : 'CPU Fallback',
+        : '检测中…',
       color: 'text-pink-300',
     },
   ];
@@ -50,8 +54,8 @@ export default function HUD({ webgpuOk }: { webgpuOk: boolean }) {
             <div
               className="w-2 h-2 rounded-full"
               style={{
-                background: webgpuOk ? '#00e5ff' : '#ff6478',
-                boxShadow: `0 0 8px ${webgpuOk ? 'rgba(0,229,255,0.8)' : 'rgba(255,100,120,0.8)'}`,
+                background: backendMode === 'webgpu' ? '#00e5ff' : backendMode === 'webgl2' ? '#ffb454' : '#ff6478',
+                boxShadow: `0 0 8px ${backendMode === 'webgpu' ? 'rgba(0,229,255,0.8)' : backendMode === 'webgl2' ? 'rgba(255,180,84,0.8)' : 'rgba(255,100,120,0.8)'}`,
               }}
             />
           </div>
