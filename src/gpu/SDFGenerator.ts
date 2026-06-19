@@ -67,7 +67,7 @@ export class SDFGenerator {
     });
   }
 
-  generate(obstacleType: ObstacleType, rotationAngle: number = 0) {
+  generate(obstacleType: ObstacleType, rotationAngle: number = 0, center: [number, number, number] = [0, 0, 0]) {
     const { device, queue } = webgpuCtx;
 
     const c = Math.cos(rotationAngle);
@@ -79,7 +79,6 @@ export class SDFGenerator {
     ]);
 
     const data = new ArrayBuffer(256);
-    const view = new DataView(data);
     const u32 = new Uint32Array(data);
     const f32 = new Float32Array(data);
 
@@ -90,6 +89,10 @@ export class SDFGenerator {
     f32[4] = OBSTACLE_RADIUS;
     u32[5] = 0;
     for (let i = 0; i < 9; i++) f32[6 + i] = rotMat[i];
+    f32[15] = center[0];
+    f32[16] = center[1];
+    f32[17] = center[2];
+    f32[18] = 0;
 
     queue.writeBuffer(this.uniformBuffer, 0, data);
 

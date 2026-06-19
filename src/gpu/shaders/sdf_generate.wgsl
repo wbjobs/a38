@@ -6,6 +6,8 @@ struct Uniforms {
   obstacleRadius: f32,
   pad0: u32,
   obstacleRotation: mat3x3<f32>,
+  obstacleCenter: vec3<f32>,
+  pad1: f32,
 };
 @group(0) @binding(1) var<uniform> u: Uniforms;
 
@@ -33,7 +35,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 
   let npos = (vec3<f32>(gid) + 0.5) / vec3<f32>(u.gridSize);
   let p = (npos - 0.5) * 2.0;
-  let pr = u.obstacleRotation * p;
+  let pc = p - u.obstacleCenter;
+  let pr = u.obstacleRotation * pc;
 
   var dist: f32;
   switch (u.obstacleType) {

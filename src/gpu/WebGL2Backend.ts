@@ -21,6 +21,7 @@ uniform ivec3 u_gridSize;
 uniform uint u_obstacleType;
 uniform float u_obstacleRadius;
 uniform mat3 u_rotation;
+uniform vec3 u_obstacleCenter;
 
 float sdSphere(vec3 p, float r) { return length(p) - r; }
 float sdTorus(vec3 p, float r, float R) {
@@ -51,7 +52,8 @@ void main() {
   if (any(greaterThanEqual(gid, u_gridSize))) { discard; return; }
   vec3 npos = (vec3(gid) + 0.5) / vec3(u_gridSize);
   vec3 p = (npos - 0.5) * 2.0;
-  vec3 pr = u_rotation * p;
+  vec3 pc = p - u_obstacleCenter;
+  vec3 pr = u_rotation * pc;
   float dist;
   if (u_obstacleType == 0u) dist = sdSphere(pr, u_obstacleRadius);
   else if (u_obstacleType == 1u) dist = sdTorus(pr, u_obstacleRadius * 0.35, u_obstacleRadius);
@@ -455,6 +457,7 @@ export class WebGL2Backend implements FluidBackend {
   time = 0;
   rotationAngle = 0;
   frame = 0;
+  obstacleCenter: [number, number, number] = [0, 0, 0];
   private currentObstacle: ObstacleType = 'torus';
   private inited = false;
 
@@ -589,8 +592,9 @@ export class WebGL2Backend implements FluidBackend {
     gl.bindBuffer(gl.COPY_WRITE_BUFFER, null);
   }
 
-  regenerateSDF(type: ObstacleType, angle: number) {
+  regenerateSDF(type: ObstacleType, angle: number, center?: [number, number, number]) {
     const gl = this.gl;
+    if (center) this.obstacleCenter = center;
     this.currentObstacle = type;
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.singleFBO);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.sdfTex, 0);
@@ -603,9 +607,17 @@ export class WebGL2Backend implements FluidBackend {
     const c = Math.cos(angle), s = Math.sin(angle);
     const rot = new Float32Array([c, 0, s, 0, 1, 0, -s, 0, c]);
     gl.uniformMatrix3fv(gl.getUniformLocation(this.progSDF, 'u_rotation'), false, rot);
+    const centerLoc = gl.getUniformLocation(this.progSDF, 'u_obstacleCenter');
+    if (centerLoc !== null) {
+      gl.uniform3f(centerLoc, this.obstacleCenter[0], this.obstacleCenter[1], this.obstacleCenter[2]);
+    }
     gl.bindVertexArray(this.quadVao);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  setObstacleCenter(center: [number, number, number]) {
+    this.obstacleCenter = [...center] as [number, number, number];
   }
 
   private initLBMTex() {
@@ -640,6 +652,11 @@ export class WebGL2Backend implements FluidBackend {
     emitRate: number;
     obstacleType: ObstacleType;
     obstacleRotationSpeed: number;
+    smokeEnabled: boolean;
+    smokeAmount: number;
+    smokeDiffusion: number;
+    smokeSource: [number, number, number];
+    smokeSourceRadius: number;
   }): Promise<SimStepResult> {
     const gl = this.gl;
     this.time += params.dt;
@@ -741,6 +758,6 @@ export class WebGL2Backend implements FluidBackend {
     for (let i = 0; i < this.posData.length; i += 4) {
       if (this.posData[i + 3] > 0 && this.posData[i] < 50) activeCount++;
     }
-    return { positionData: this.posData, activeCount };
+    return { positionData: this.posData, activeCount, smokeData: null, smokeCount: 0 };
   }
 }

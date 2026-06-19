@@ -14,6 +14,13 @@ interface SimState {
   activeParticles: number;
   backendMode: BackendMode | null;
 
+  smokeEnabled: boolean;
+  smokeAmount: number;
+  smokeDiffusion: number;
+  smokeCount: number;
+  showVortex: boolean;
+  obstaclePos: [number, number, number];
+
   toggleEmitting: () => void;
   setViscosity: (v: number) => void;
   setEmitRate: (v: number) => void;
@@ -23,6 +30,12 @@ interface SimState {
   setFps: (v: number) => void;
   setActiveParticles: (v: number) => void;
   setBackendMode: (m: BackendMode) => void;
+  setSmokeEnabled: (v: boolean) => void;
+  setSmokeAmount: (v: number) => void;
+  setSmokeDiffusion: (v: number) => void;
+  setSmokeCount: (v: number) => void;
+  setShowVortex: (v: boolean) => void;
+  setObstaclePos: (pos: [number, number, number]) => void;
 }
 
 export const useSimStore = create<SimState>((set) => ({
@@ -37,6 +50,13 @@ export const useSimStore = create<SimState>((set) => ({
   activeParticles: 0,
   backendMode: null,
 
+  smokeEnabled: true,
+  smokeAmount: 800,
+  smokeDiffusion: 0.15,
+  smokeCount: 0,
+  showVortex: true,
+  obstaclePos: [0, 0, 0],
+
   toggleEmitting: () => set((s) => ({ isEmitting: !s.isEmitting })),
   setViscosity: (v) => set({ viscosity: v }),
   setEmitRate: (v) => set({ emitRate: v }),
@@ -46,4 +66,10 @@ export const useSimStore = create<SimState>((set) => ({
   setFps: (v) => set({ fps: v }),
   setActiveParticles: (v) => set({ activeParticles: v }),
   setBackendMode: (m) => set({ backendMode: m }),
+  setSmokeEnabled: (v) => set({ smokeEnabled: v }),
+  setSmokeAmount: (v) => set({ smokeAmount: v }),
+  setSmokeDiffusion: (v) => set({ smokeDiffusion: v }),
+  setSmokeCount: (v) => set({ smokeCount: v }),
+  setShowVortex: (v) => set({ showVortex: v }),
+  setObstaclePos: (pos) => set({ obstaclePos: pos }),
 }));

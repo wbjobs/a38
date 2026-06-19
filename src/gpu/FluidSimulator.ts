@@ -1,11 +1,11 @@
 import { WebGPUBackend } from './WebGPUBackend';
 import { WebGL2Backend } from './WebGL2Backend';
-import type { FluidBackend, SimStepResult } from './types';
+import type { FluidBackend, SimStepResult, VortexCenter } from './types';
 import type { ObstacleType } from '../utils/constants';
 
 export type BackendMode = 'webgpu' | 'webgl2';
 
-export type { SimStepResult };
+export type { SimStepResult, VortexCenter };
 
 export class FluidSimulator {
   backend!: FluidBackend;
@@ -35,8 +35,12 @@ export class FluidSimulator {
     return false;
   }
 
-  regenerateSDF(type: ObstacleType, angle: number) {
-    this.backend?.regenerateSDF(type, angle);
+  regenerateSDF(type: ObstacleType, angle: number, center?: [number, number, number]) {
+    this.backend?.regenerateSDF(type, angle, center);
+  }
+
+  setObstacleCenter(center: [number, number, number]) {
+    this.backend?.setObstacleCenter(center);
   }
 
   async step(params: {
@@ -47,9 +51,19 @@ export class FluidSimulator {
     emitRate: number;
     obstacleType: ObstacleType;
     obstacleRotationSpeed: number;
+    smokeEnabled: boolean;
+    smokeAmount: number;
+    smokeDiffusion: number;
+    smokeSource: [number, number, number];
+    smokeSourceRadius: number;
   }): Promise<SimStepResult> {
     if (!this.backend) return { positionData: null, activeCount: 0 };
     return this.backend.step(params);
+  }
+
+  getVortexCenters(): VortexCenter[] {
+    if (!this.backend?.getVortexCenters) return [];
+    return this.backend.getVortexCenters();
   }
 }
 

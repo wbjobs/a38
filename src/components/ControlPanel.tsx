@@ -1,4 +1,4 @@
-import { Activity, Droplets, Box, Disc, CircleDot, RotateCw, Gauge, Sliders, Zap } from 'lucide-react';
+import { Activity, Droplets, Box, Disc, CircleDot, RotateCw, Gauge, Sliders, Zap, Eye, Wind, Sparkles } from 'lucide-react';
 import { useSimStore } from '../store/useSimStore';
 import { ObstacleType } from '../utils/constants';
 import { cn } from '../lib/utils';
@@ -12,6 +12,10 @@ export default function ControlPanel() {
     obstacleRotationSpeed, setObstacleRotationSpeed,
     flowSpeed, setFlowSpeed,
     backendMode,
+    smokeEnabled, setSmokeEnabled,
+    smokeAmount, setSmokeAmount,
+    smokeDiffusion, setSmokeDiffusion,
+    showVortex, setShowVortex,
   } = useSimStore();
   const webgpuOk = backendMode === 'webgpu';
   const webgl2Ok = backendMode === 'webgl2';
@@ -68,7 +72,7 @@ export default function ControlPanel() {
           </div>
         </div>
 
-        <div className="p-5 space-y-5">
+        <div className="p-5 space-y-4 max-h-[calc(100vh-40px)] overflow-y-auto">
           <button
             onClick={toggleEmitting}
             disabled={!anyOk}
@@ -211,6 +215,96 @@ export default function ControlPanel() {
               ))}
             </div>
           </div>
+
+          <div className="h-px bg-white/5" />
+
+          <div className="space-y-3">
+            <button
+              onClick={() => setSmokeEnabled(!smokeEnabled)}
+              className={cn(
+                'w-full py-2.5 rounded-lg border text-[12px] flex items-center justify-center gap-2 transition-all duration-200',
+                smokeEnabled
+                  ? 'text-white border-transparent'
+                  : 'text-white/55 hover:text-white/80'
+              )}
+              style={{
+                background: smokeEnabled
+                  ? 'linear-gradient(135deg, rgba(255,180,84,0.25) 0%, rgba(255,120,180,0.2) 100%)'
+                  : 'rgba(255,255,255,0.03)',
+                borderColor: smokeEnabled ? 'rgba(255,180,84,0.45)' : 'rgba(255,255,255,0.08)',
+                boxShadow: smokeEnabled ? '0 0 12px rgba(255,180,84,0.15)' : 'none',
+              }}
+            >
+              <Wind size={14} />
+              <span className="font-medium tracking-wide">烟雾示踪剂 {smokeEnabled ? '开' : '关'}</span>
+            </button>
+
+            {smokeEnabled && (
+              <>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 text-[12px] text-white/70">
+                      <Sparkles size={12} /> 烟雾浓度
+                    </label>
+                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-white/5 text-amber-300 font-mono tabular-nums">
+                      {smokeAmount}/s
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={100}
+                    max={2000}
+                    step={50}
+                    value={smokeAmount}
+                    onChange={(e) => setSmokeAmount(+e.target.value)}
+                    className="w-full accent-amber-400 h-1.5"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 text-[12px] text-white/70">
+                      <Eye size={12} /> 扩散强度
+                    </label>
+                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-white/5 text-orange-300 font-mono tabular-nums">
+                      {smokeDiffusion.toFixed(2)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0.02}
+                    max={0.5}
+                    step={0.01}
+                    value={smokeDiffusion}
+                    onChange={(e) => setSmokeDiffusion(+e.target.value)}
+                    className="w-full accent-orange-400 h-1.5"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="h-px bg-white/5" />
+
+          <button
+            onClick={() => setShowVortex(!showVortex)}
+            className={cn(
+              'w-full py-2.5 rounded-lg border text-[12px] flex items-center justify-center gap-2 transition-all duration-200',
+              showVortex
+                ? 'text-white border-transparent'
+                : 'text-white/55 hover:text-white/80'
+            )}
+            style={{
+              background: showVortex
+                ? 'linear-gradient(135deg, rgba(255,100,200,0.25) 0%, rgba(150,100,255,0.2) 100%)'
+                : 'rgba(255,255,255,0.03)',
+              borderColor: showVortex ? 'rgba(255,100,200,0.45)' : 'rgba(255,255,255,0.08)',
+              boxShadow: showVortex ? '0 0 12px rgba(255,100,200,0.15)' : 'none',
+            }}
+          >
+            <Activity size={14} />
+            <span className="font-medium tracking-wide">涡旋可视化 {showVortex ? '开' : '关'}</span>
+          </button>
         </div>
 
         <div
@@ -218,7 +312,7 @@ export default function ControlPanel() {
           style={{ borderColor: 'rgba(120,170,255,0.1)' }}
         >
           <span className="font-mono">LBM · D3Q7 · 32³ Grid</span>
-          <span>CPU仅传参</span>
+          <span>拖拽障碍物可移动</span>
         </div>
       </div>
     </div>

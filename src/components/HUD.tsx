@@ -1,10 +1,12 @@
 import { useSimStore } from '../store/useSimStore';
-import { Cpu, Droplet, Layers, Timer } from 'lucide-react';
+import { Cpu, Droplet, Layers, Timer, Wind, Sparkles } from 'lucide-react';
 import type { BackendMode } from '../gpu/FluidSimulator';
 
 export default function HUD() {
   const fps = useSimStore((s) => s.fps);
   const activeParticles = useSimStore((s) => s.activeParticles);
+  const smokeCount = useSimStore((s) => s.smokeCount);
+  const smokeEnabled = useSimStore((s) => s.smokeEnabled);
   const obstacleType = useSimStore((s) => s.obstacleType);
   const backendMode = useSimStore((s) => s.backendMode);
   const webgpuOk = backendMode === 'webgpu';
@@ -19,9 +21,15 @@ export default function HUD() {
     },
     {
       icon: <Droplet size={13} />,
-      label: '粒子',
+      label: '流粒子',
       value: `${activeParticles.toLocaleString()} / 8,000`,
       color: 'text-cyan-300',
+    },
+    smokeEnabled && {
+      icon: <Sparkles size={13} />,
+      label: '烟雾',
+      value: `${smokeCount.toLocaleString()} / 6,000`,
+      color: 'text-amber-300',
     },
     {
       icon: <Layers size={13} />,
@@ -37,7 +45,7 @@ export default function HUD() {
         : '检测中…',
       color: 'text-pink-300',
     },
-  ];
+  ].filter(Boolean) as { icon: React.ReactNode; label: string; value: string; color: string }[];
 
   return (
     <div className="absolute top-5 left-5 z-10 max-w-[calc(100vw-40px)]">
